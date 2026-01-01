@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>经济数据可视化仪表板</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SimHei', 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+
+        .timestamp {
+            color: rgba(255,255,255,0.8);
+            font-size: 0.9em;
+            margin-top: 15px;
+        }
+
+        nav {
+            background: #34495e;
+            padding: 15px 40px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+
+        nav a:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .chart-section {
+            margin-bottom: 50px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .chart-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+
+        .chart-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            font-size: 1.8em;
+        }
+
+        .chart-description {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 5px;
+            padding: 15px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: scale(1.05);
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .stat-change {
+            margin-top: 10px;
+            font-size: 0.85em;
+        }
+
+        .positive {
+            color: #27ae60;
+        }
+
+        .negative {
+            color: #e74c3c;
+        }
+
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+
+        footer p {
+            margin: 5px 0;
+        }
+
+        .disclaimer {
+            margin-top: 15px;
+            opacity: 0.8;
+            font-size: 0.9em;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            header {
+                padding: 25px 20px;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .chart-section {
+                padding: 20px;
+            }
+
+            nav {
+                padding: 10px 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 经济数据可视化仪表板</h1>
+            <p>Economic Data Visualization Dashboard</p>
+            <p class="timestamp">更新时间: <span id="update-time"></span></p>
+        </header>
+
+        <nav>
+            <a href="#overview">概览</a>
+            <a href="#cpi">消费物价</a>
+            <a href="#ppi">生产者价格</a>
+            <a href="#trade">贸易数据</a>
+            <a href="#monetary">货币供应</a>
+        </nav>
+
+        <div class="content">
+            <!-- Key Statistics -->
+            <div class="stats-grid" id="overview">
+                <div class="stat-card">
+                    <div class="stat-label">最新CPI同比</div>
+                    <div class="stat-value" id="cpi-value">3.2%</div>
+                    <div class="stat-change positive">▲ 0.2% vs 上月</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">最新PPI同比</div>
+                    <div class="stat-value" id="ppi-value">2.1%</div>
+                    <div class="stat-change negative">▼ 0.3% vs 上月</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">核心CPI同比</div>
+                    <div class="stat-value" id="core-cpi-value">2.8%</div>
+                    <div class="stat-change positive">▲ 0.1% vs 上月</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">M2货币供应同比</div>
+                    <div class="stat-value" id="m2-value">5.4%</div>
+                    <div class="stat-change positive">▲ 0.5% vs 上月</div>
+                </div>
+            </div>
+
+            <!-- Chart 1: CPI -->
+            <div class="chart-section" id="cpi">
+                <h2>💰 消费物价指数（CPI）</h2>
+                <p class="chart-description">
+                    Consumer Price Index - 衡量消费品和服务价格变化的指标，是通货膨胀的主要衡量标准。
+                </p>
+                <div class="chart-container">
+                    <div id="chart-cpi"></div>
+                </div>
+            </div>
+
+            <!-- Chart 2: PPI -->
+            <div class="chart-section" id="ppi">
+                <h2>🏭 生产者价格指数（PPI）</h2>
+                <p class="chart-description">
+                    Producer Price Index - 衡量生产者出厂价格的指标，是未来通胀压力的先行指标。
+                </p>
+                <div class="chart-container">
+                    <div id="chart-ppi"></div>
+                </div>
+            </div>
+
+            <!-- Chart 3: Dual Axis -->
+            <div class="chart-section" id="monetary">
+                <h2>💵 CPI与M2货币供应对比</h2>
+                <p class="chart-description">
+                    对比分析货币供应增长与物价水平的关系，帮助理解货币政策对通胀的影响。
+                </p>
+                <div class="chart-container">
+                    <div id="chart-dual"></div>
+                </div>
+            </div>
+
+            <!-- Chart 4: Trade -->
+            <div class="chart-section" id="trade">
+                <h2>🌐 贸易数据</h2>
+                <p class="chart-description">
+                    进出口贸易数据及贸易差额，反映国际贸易状况和国际收支平衡。
+                </p>
+                <div class="chart-container">
+                    <div id="chart-trade"></div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><strong>📚 资料来源:</strong> CEIC, BEA, BLS, Wind, 国家金融与发展实验室</p>
+            <p><strong>✍️ 作者:</strong> 汪红驹 | <strong>📧 邮箱:</strong> hjuw2005@126.com</p>
+            <p class="disclaimer">
+                ⚠️ 免责声明: 本报告基于公开数据，欢迎联系作者完善报告。仅代表作者个人观点，不代表机构观点，不构成投资建议。
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Set update time
+        document.getElementById('update-time').textContent = new Date().toLocaleString('zh-CN');
+
+        // Sample data generation function
+        function generateSampleData(start, end, volatility = 0.3) {
+            let dates = [];
+            let values = [];
+            let current = new Date(start);
+            let endDate = new Date(end);
+            let value = 100;
+
+            while (current <= endDate) {
+                dates.push(new Date(current));
+                value += (Math.random() - 0.5) * volatility;
+                values.push(value);
+                current.setMonth(current.getMonth() + 1);
+            }
+
+            return { dates, values };
+        }
+
+        // Generate sample datasets
+        const cpiData = generateSampleData('2020-01', '2024-12', 0.3);
+        const ppiData = generateSampleData('2020-01', '2024-12', 0.5);
+        const m2Data = generateSampleData('2020-01', '2024-12', 0.2);
+
+        // Chart 1: CPI Line Chart
+        const cpiTrace = {
+            x: cpiData.dates,
+            y: cpiData.values.map((v, i) => i >= 12 ? ((v - cpiData.values[i-12]) / cpiData.values[i-12] * 100) : null),
+            type: 'scatter',
+            mode: 'lines',
+            name: 'CPI同比',
+            line: { color: '#667eea', width: 3 }
+        };
+
+        const cpiLayout = {
+            title: '消费物价指数同比变化 (%)',
+            xaxis: { title: '日期' },
+            yaxis: { title: '同比增长率 (%)' },
+            hovermode: 'x unified',
+            font: { family: 'SimHei, Arial' }
+        };
+
+        Plotly.newPlot('chart-cpi', [cpiTrace], cpiLayout, { responsive: true });
+
+        // Chart 2: PPI Line Chart
+        const ppiTrace = {
+            x: ppiData.dates,
+            y: ppiData.values.map((v, i) => i >= 12 ? ((v - ppiData.values[i-12]) / ppiData.values[i-12] * 100) : null),
+            type: 'scatter',
+            mode: 'lines',
+            name: 'PPI同比',
+            line: { color: '#e74c3c', width: 3 }
+        };
+
+        const ppiLayout = {
+            title: '生产者价格指数同比变化 (%)',
+            xaxis: { title: '日期' },
+            yaxis: { title: '同比增长率 (%)' },
+            hovermode: 'x unified',
+            font: { family: 'SimHei, Arial' }
+        };
+
+        Plotly.newPlot('chart-ppi', [ppiTrace], ppiLayout, { responsive: true });
+
+        // Chart 3: Dual Axis Chart
+        const trace1 = {
+            x: cpiData.dates,
+            y: cpiData.values.map((v, i) => i >= 12 ? ((v - cpiData.values[i-12]) / cpiData.values[i-12] * 100) : null),
+            type: 'scatter',
+            mode: 'lines',
+            name: 'CPI同比',
+            line: { color: '#667eea', width: 3 }
+        };
+
+        const trace2 = {
+            x: m2Data.dates,
+            y: m2Data.values.map((v, i) => i >= 12 ? ((v - m2Data.values[i-12]) / m2Data.values[i-12] * 100) : null),
+            type: 'scatter',
+            mode: 'lines',
+            name: 'M2同比',
+            yaxis: 'y2',
+            line: { color: '#27ae60', width: 3, dash: 'dash' }
+        };
+
+        const dualLayout = {
+            title: 'CPI与M2货币供应对比',
+            xaxis: { title: '日期' },
+            yaxis: { title: 'CPI同比 (%)', titlefont: { color: '#667eea' } },
+            yaxis2: {
+                title: 'M2同比 (%)',
+                titlefont: { color: '#27ae60' },
+                overlaying: 'y',
+                side: 'right'
+            },
+            hovermode: 'x unified',
+            font: { family: 'SimHei, Arial' }
+        };
+
+        Plotly.newPlot('chart-dual', [trace1, trace2], dualLayout, { responsive: true });
+
+        // Chart 4: Trade Bar Chart
+        const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+        const exports = months.map(() => 200 + Math.random() * 50);
+        const imports = months.map(() => 250 + Math.random() * 50);
+
+        const tradeTrace1 = {
+            x: months,
+            y: exports,
+            type: 'bar',
+            name: '出口',
+            marker: { color: '#27ae60' }
+        };
+
+        const tradeTrace2 = {
+            x: months,
+            y: imports,
+            type: 'bar',
+            name: '进口',
+            marker: { color: '#e74c3c' }
+        };
+
+        const tradeLayout = {
+            title: '2024年贸易数据（十亿美元）',
+            xaxis: { title: '月份' },
+            yaxis: { title: '金额（十亿美元）' },
+            barmode: 'group',
+            font: { family: 'SimHei, Arial' }
+        };
+
+        Plotly.newPlot('chart-trade', [tradeTrace1, tradeTrace2], tradeLayout, { responsive: true });
+
+        // Smooth scroll for navigation
+        document.querySelectorAll('nav a').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+
+        console.log('Dashboard loaded successfully! 📊');
+    </script>
+</body>
+</html>
