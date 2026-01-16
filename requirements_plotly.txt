@@ -1,0 +1,16 @@
+# Requirements for Plotly Interactive Dashboards
+# Install with: pip install -r requirements_plotly.txt
+
+plotly>=5.18.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Optional but recommended
+kaleido>=0.2.1  # For static image export (PNG, PDF, etc.)
+
+# Note: These are IN ADDITION to existing requirements:
+# - matplotlib
+# - seaborn
+# - xlwings
+# - pylatex
+# - statsmodels
